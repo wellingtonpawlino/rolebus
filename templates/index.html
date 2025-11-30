@@ -1,0 +1,54 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ônibus Mais Próximo</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map { height: 400px; width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>Descubra o ônibus mais próximo</h1>
+    <button onclick="getLocation()">Buscar</button>
+    <p id="resultado"></p>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        let map = L.map('map').setView([-23.45, -46.62], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition);
+            } else {
+                alert("Geolocalização não suportada.");
+            }
+        }
+
+        function showPosition(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            // Marcador do usuário
+            L.marker([lat, lon]).addTo(map).bindPopup("Você está aqui").openPopup();
+            map.setView([lat, lon], 14);
+
+            fetch(`/onibus-proximo?lat=${lat}&lon=${lon}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("resultado").innerHTML =
+                        `Linha: ${data.linha} - ${data.descricao}<br>Distância: ${data.distancia_km} km`;
+
+                    // Marcador do ônibus
+                    L.marker([data.latitude, data.longitude]).addTo(map)
+                        .bindPopup(`Ônibus ${data.linha}<br>${data.descricao}`).openPopup();
+                });
+        }
+    </script>
+</body>
+</html>
