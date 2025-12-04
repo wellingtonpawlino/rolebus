@@ -1,17 +1,26 @@
 
 from flask import Flask, request, jsonify, render_template
 import math
+import pandas as pd
 
 app = Flask(__name__)
 
-# Base de dados (exemplo)
+# Buscar dados diretamente do GitHub (arquivo CSV)
+url = "https://raw.githubusercontent.com/wellingtonpawlino/sptrans_pipeline/main/data/ultima_posicao/view_ultima_posicao.csv"
+df = pd.read_csv(url)
+
+# Converter para lista de dicionários no formato esperado
 onibus = [
-    {"codigo": "1012-21", "descricao": "JD. ROSINHA", "lat": -23.432145, "lon": -46.787099999999995},
-    {"codigo": "1016-10", "descricao": "SHOP. CENTER NORTE", "lat": -23.446737, "lon": -46.611729},
-    {"codigo": "1018-10", "descricao": "METRÔ SANTANA", "lat": -23.4602115, "lon": -46.626517},
-    {"codigo": "1019-10", "descricao": "TERM. PIRITUBA", "lat": -23.4618575, "lon": -46.753502999999995}
+    {
+        "codigo": row["codigo_linha"],
+        "descricao": row["DescricaoCompleto"],
+        "lat": float(row["latitude"]),
+        "lon": float(row["longitude"])
+    }
+    for _, row in df.iterrows()
 ]
 
+# Função para calcular distância (Haversine)
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
     dlat = math.radians(lat2 - lat1)
