@@ -2,25 +2,39 @@
 from flask import Flask, request, jsonify, render_template
 import math
 import pandas as pd
+from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 
-# Buscar dados diretamente do GitHub (arquivo CSV)
+# URL do CSV no GitHub
 url = "https://raw.githubusercontent.com/wellingtonpawlino/sptrans_pipeline/main/data/ultima_posicao/view_ultima_posicao.csv"
-df = pd.read_csv(url)
 
-# Converter para lista de dicionários no formato esperado
-onibus = [
-    {
-        "codigo": row["codigo_linha"],
-        "descricao": row["DescricaoCompleto"],
-        "lat": float(row["latitude"]),
-        "lon": float(row["longitude"])
-    }
-    for _, row in df.iterrows()
-]
+# Variável global para armazenar os dados
+onibus = []
 
-# Função para calcular distância (Haversine)
+def atualizar_dados():
+    global onibus
+    df = pd.read_csv(url)
+    onibus = [
+        {
+            "codigo": row["codigo_linha"],
+            "descricao": row["DescricaoCompleto"],
+            "lat": float(row["latitude"]),
+            "lon": float(row["longitude"])
+        }
+        for _, row in df.iterrows()
+    ]
+    print("✅ Dados atualizados do GitHub")
+
+# Atualiza imediatamente ao iniciar
+atualizar_dados()
+
+# Agendador para atualizar a cada 5 minutos
+scheduler = BackgroundScheduler()
+scheduler.add_job(atualizar_dados, 'interval', minutes=1)
+scheduler.start()
+
+# Função para calcular distância (mantida)
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
     dlat = math.radians(lat2 - lat1)
