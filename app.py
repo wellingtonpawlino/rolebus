@@ -15,11 +15,10 @@ onibus = []
 def atualizar_dados():
     global onibus
     try:
-        # Força não usar cache
         df = pd.read_csv(url)
         onibus = [
             {
-                "codigo": row["codigo_linha"],
+                "codigo": str(row["codigo_linha"]),
                 "descricao": row["DescricaoCompleto"],
                 "lat": float(row["latitude"]),
                 "lon": float(row["longitude"])
@@ -51,6 +50,7 @@ def haversine(lat1, lon1, lat2, lon2):
 def home():
     return render_template("index.html")
 
+# ✅ Mais próximo de qualquer linha
 @app.route("/onibus-proximo")
 def onibus_proximo():
     lat_user = float(request.args.get("lat"))
@@ -67,4 +67,18 @@ def onibus_proximo():
         "distancia_km": round(distancia, 2)
     })
 
-if __name__ == "__main__":
+# ✅ Filtro por código da linha
+@app.route("/onibus-linha")
+def onibus_linha():
+    codigo = request.args.get("codigo")
+    lat_user = float(request.args.get("lat"))
+    lon_user = float(request.args.get("lon"))
+
+    if not onibus:
+        return jsonify({"erro": "Dados não disponíveis"}), 503
+
+    filtrados = [o for o in onibus if o["codigo"] == codigo]
+
+    if not filtrados:
+        return jsonify({"erro": f"Nenhum ônibus encontrado para a linha {codigo}"}), 404
+
