@@ -14,27 +14,31 @@ onibus = []
 
 def atualizar_dados():
     global onibus
-    df = pd.read_csv(url)
-    onibus = [
-        {
-            "codigo": row["codigo_linha"],
-            "descricao": row["DescricaoCompleto"],
-            "lat": float(row["latitude"]),
-            "lon": float(row["longitude"])
-        }
-        for _, row in df.iterrows()
-    ]
-    print("✅ Dados atualizados do GitHub")
+    try:
+        # Força não usar cache
+        df = pd.read_csv(url)
+        onibus = [
+            {
+                "codigo": row["codigo_linha"],
+                "descricao": row["DescricaoCompleto"],
+                "lat": float(row["latitude"]),
+                "lon": float(row["longitude"])
+            }
+            for _, row in df.iterrows()
+        ]
+        print(f"✅ Dados atualizados em: {pd.Timestamp.now()}")
+    except Exception as e:
+        print(f"❌ Erro ao atualizar dados: {e}")
 
 # Atualiza imediatamente ao iniciar
 atualizar_dados()
 
-# Agendador para atualizar a cada 5 minutos
-scheduler = BackgroundScheduler()
+# Agendador para atualizar a cada 1 minuto
+scheduler = BackgroundScheduler(daemon=True)
 scheduler.add_job(atualizar_dados, 'interval', minutes=1)
 scheduler.start()
 
-# Função para calcular distância (mantida)
+# Função para calcular distância (Haversine)
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
     dlat = math.radians(lat2 - lat1)
@@ -51,6 +55,8 @@ def home():
 def onibus_proximo():
     lat_user = float(request.args.get("lat"))
     lon_user = float(request.args.get("lon"))
+    if not onibus:
+        return jsonify({"erro": "Dados não disponíveis no momento"}), 503
     mais_proximo = min(onibus, key=lambda o: haversine(lat_user, lon_user, o["lat"], o["lon"]))
     distancia = haversine(lat_user, lon_user, mais_proximo["lat"], mais_proximo["lon"])
     return jsonify({
@@ -62,4 +68,3 @@ def onibus_proximo():
     })
 
 if __name__ == "__main__":
-    app.run(debug=True)
